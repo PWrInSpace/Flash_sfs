@@ -1,3 +1,9 @@
+build/
+sdkconfig
+sdkconfig.old
+.vscode/
+dependencies.lock
+
 # Prerequisites
 *.d
 
