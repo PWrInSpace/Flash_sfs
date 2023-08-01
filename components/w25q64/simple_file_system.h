@@ -12,12 +12,21 @@
 #define DATA_LEN_SIZE 2
 #define FILE_INFO_SIZE (MAX_FILE_NAME_SIZE + FILE_PREFIX_SIZE)
 
+#define MB_TO_BITS(x) (x * 1024 * 1024)
+#define KB_TO_BITS(x) (x * 1024)
+
+// #define SFS_DEBUG(format, ...) 
+// #ifdef SFS_DEBUG_ON
+//     printf(format, __VA_ARGS__)
+// #endif
+
 typedef int(*sfs_flash_erase)(uint32_t address, uint32_t size);
 typedef int(*sfs_flash_read)(uint32_t address, uint8_t *buffer, uint32_t size);
 typedef int(*sfs_flash_write)(uint32_t address, uint8_t* buffer, uint32_t size);
 
 typedef enum {
     SFS_OK = 0,
+    SFS_NULL_POINTER,
     SFS_FLASH_READ,
     SFS_INVALID_PREFIX,
     SFS_INVALID_FILE_NAME,
@@ -25,27 +34,34 @@ typedef enum {
 } sfs_err_t;
 
 typedef struct {
-    char name[MAX_FILE_NAME_SIZE];
-    uint32_t end_address;
-    uint32_t start_address;
+    uint8_t name[MAX_FILE_NAME_SIZE]; // File name
+    uint32_t end_address;   // End of data
+    uint32_t start_address; // Begining of data
+    uint32_t address_pointer; // User address pointer
+
+    uint8_t file_descriptor;
 } sfs_file_t;
 
 typedef struct {
-    sfs_file_t file;
-
     sfs_flash_erase erase_fnc;
     sfs_flash_read read_fnc;
     sfs_flash_write write_fnc;
+
+    uint32_t flash_size_bits;
+    uint32_t flash_sector_bits;
 } sfs_t;
 
 typedef struct {
+    uint32_t flash_size_mb;
+    uint32_t flash_sector_kb;
+
     sfs_flash_erase erase_fnc;
     sfs_flash_read read_fnc;
     sfs_flash_write write_fnc;
 } sfs_config_t;
 
 bool sfs_init(sfs_t *sfs, sfs_config_t *config);
-bool sfs_open(sfs_t *sfs, char *file_name, uint8_t file_name_size);
+sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name);
 // bool sfs_write(sfs_t *sfs, uint8_t *data, uint32_t size);
 // bool sfs_read_line(sfs_t *sfs, uint8_t *buffer, uint16_t buffer_size);
 
@@ -55,6 +71,8 @@ bool sfs_open(sfs_t *sfs, char *file_name, uint8_t file_name_size);
         .name = {0},            \
         .start_address = 0,     \
         .end_address = 0,       \
+        .address_pointer = 0,   \
+        .file_descirptor = 0,   \
     }                           \
 
 #endif

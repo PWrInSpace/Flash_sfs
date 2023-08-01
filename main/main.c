@@ -80,26 +80,30 @@ void app_main()
 		.read_fnc = flash_read,
 		.write_fnc = flash_write,
 		.erase_fnc = flash_erase,
+		.flash_size_mb = 8,
+		.flash_sector_kb = 4
 	};
 
-	// W25Q64_eraseSector(&flash, 0, true);
-	// uint8_t buff[5] = {0xFF, 0xFF, 0x53, 0x46, 0x53};
-	// W25Q64_pageWrite(&flash, 0, 0, buff, sizeof(buff));
+	W25Q64_eraseSector(&flash, 0, true);
+	uint8_t buff[13] = {0xFF, 0xFF, 0x53, 0x46, 0x53, 0x54, 0x45, 0x53, 0x54, 0xFF, 0xFF, 0xFF, 0};
+	W25Q64_pageWrite(&flash, 4, 0, buff, sizeof(buff));
 
 	// uint8_t buf = '\0';
 	// W25Q64_pageWrite(&flash, 0, 12, &buf, 1);
 
-	uint8_t buff2[2] = {0x01, 0xD1};
-	W25Q64_pageWrite(&flash, 0, 13, buff2, sizeof(buff2));
-
+	// uint8_t buff2[2] = {0x01, 0xD1};
+	// W25Q64_pageWrite(&flash, 0, 13, buff2, sizeof(buff2));
 	uint8_t rbuf[256];
 	W25Q64_fastread(&flash, 0, rbuf, 256);
-	ESP_LOGI(TAG, "SFS Read 0x%2X, 0x%2X, 0x%2X, 0x%2X", rbuf[0], rbuf[1], rbuf[2], rbuf[3]);
-
+	ESP_LOGI(TAG, "===SFS READ====");
+	for (int i = 0; i < 13; ++i) {
+		ESP_LOGI(TAG, "%d\t0x%2X", i, rbuf[i]);
+	}
 	
 	sfs_init(&sfs, &sfs_cfg);
 	char name[] = "TEST";
-	sfs_open(&sfs, name, sizeof(name));
+	sfs_file_t file;
+	sfs_open(&sfs, &file, name);
 	// W25Q64_t dev;
 	// W25Q64_init(&dev);
 
