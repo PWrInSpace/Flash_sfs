@@ -34,6 +34,20 @@ static bool uint8_cmpr(uint8_t *buf1, uint8_t *buf2, size_t size) {
     return true;
 }
 
+static sfs_err_t get_data_len(sfs_t *sfs, uint32_t address, uint16_t *len) {
+    uint8_t len_buffer[DATA_LEN_SIZE];
+    int ret = sfs->read_fnc(address, len_buffer, sizeof(len_buffer));
+
+    if (ret != sizeof(len_buffer)) {
+        return SFS_FLASH_READ;
+    }
+
+    *len = len_buffer[1];
+    *len |= (len_buffer[0] << 8);
+
+    return SFS_OK;
+}
+
 // static bool check_file_name(uint8_t *file_name, size_t file_name_size) {
 //     if (file_name_size != MAX_FILE_NAME_SIZE) {
 //         return false;
@@ -106,6 +120,93 @@ sfs_err_t file_first_last_sector(sfs_t *sfs, sfs_file_t *file, int32_t *first, i
     return SFS_OK;
 }
 
+sfs_err_t find_free_sector(sfs_t *sfs, int32_t *sector) {
+    sfs_err_t ret = SFS_OK;
+    uint32_t number_of_sectors = sfs->flash_size_bits / sfs->flash_sector_bits;
+    int32_t last_sector_with_data = -1;
+    int32_t first_sector_without_data = -1;
+    uint8_t sector_first_element = 0;
+
+    for (uint32_t sector = 0; sector < number_of_sectors; ++sector) {
+        int len = sfs->read_fnc(sector_to_address(sfs, sector), &sector_first_element, 
+                                sizeof(sector_first_element));
+
+        if (len != sizeof(sector_first_element)) {
+            return SFS_FLASH_READ;
+        }
+
+        if (sector_first_element == FLASH_NO_DATA) {
+            last_sector_with_data = sector;
+        } else if (first_sector_without_data < 0) {
+            first_sector_without_data = sector;
+        }
+    }
+
+    // TO DO Check wear leveling
+    if (last_sector_with_data + 1 == number_of_sectors) {
+        // Last sector has data go to firs sector without data
+        *sector = first_sector_without_data;
+    } else {
+        // Last sector with data is not at the end 
+        *sector = last_sector_with_data + 1;
+    }
+
+    return SFS_OK;
+}
+
+/**
+ * @brief Write file prefix to sector, set file address 
+ * 
+ * @param sfs 
+ * @param file 
+ * @param sector 
+ * @return sfs_err_t 
+ */
+sfs_err_t create_file(sfs_t *sfs, sfs_file_t *file, int32_t sector) {
+    if (sector < 0) {
+        return SFS_UNKNOWN;
+    }
+
+    sfs_err_t ret = SFS_OK;
+    int len = 0;
+    len = sfs->write_fnc(sector_to_address(sfs, sector), file_prefix, sizeof(file_prefix));
+    if (len != sizeof(file_prefix)) {
+        return SFS_FLASH_WRITE;
+    }
+
+    len = sfs->write_fnc(sector_to_address(sfs, sector) + sizeof(file_prefix), 
+                                            file->name, sizeof(file->name)); 
+    if (len != sizeof(file->name)) {
+        return SFS_FLASH_WRITE;
+    }
+
+    file->start_address = sector_to_address(sfs, sector);
+    file->end_address = file->start_address + FILE_INFO_SIZE;
+    file->address_pointer = file->end_address;
+
+    return SFS_OK;
+}
+
+sfs_err_t open_file(sfs_t *sfs, sfs_file_t *file, int32_t start_sector, int32_t end_sector) {
+    sfs_err_t ret = SFS_OK;
+    uint32_t cursor = sector_to_address(sfs, end_sector) + FILE_INFO_SIZE;
+    uint16_t data_len = 0;
+
+
+    while(cursor < sfs->flash_sector_bits || data_len != NO_MORE_DATA) {
+        ret = get_data_len(sfs, cursor, &data_len);
+        if (ret != SFS_OK) {
+            return ret;
+        }
+    }
+
+    file->start_address = sector_to_address(sfs, start_sector);
+    file->end_address = cursor;
+    file->address_pointer = file->start_address + FILE_INFO_SIZE;
+
+    return SFS_OK;
+}
+
 sfs_err_t read_file_info_from_sectors(sfs_t *sfs, sfs_file_t *file) {
     sfs_err_t ret = SFS_OK;
     int32_t file_first_sector = -1;
@@ -117,9 +218,26 @@ sfs_err_t read_file_info_from_sectors(sfs_t *sfs, sfs_file_t *file) {
         return ret;
     }
 
-    // TO DO sector not found -> create new file in free sector
+    // There is no sector with this file name 
+    if (file_first_sector == -1) {
+        int32_t last_sector = 0;
+        ret = find_free_sector(sfs, &last_sector);
+        if (ret != SFS_OK) {
+            return ret;
+        }
 
-    // TO DO find end of datya in last sector
+        if (last_sector < 0) {
+            return SFS_FLASH_FULL;
+        }
+
+        ret = create_file(sfs, file, last_sector + 1);
+        if (ret != SFS_OK) {
+            return ret;
+        }
+    } else { // TO DO find end of data in last sector
+        file->start_address = sector_to_address(sfs, file_first_sector); 
+    
+    }
 
     return SFS_OK;
 }
@@ -142,16 +260,3 @@ sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name) {
 
 
 
-// static sfs_err_t get_data_len(sfs_t *sfs, uint32_t address, uint32_t *len) {
-//     uint8_t len_buffer[DATA_LEN_SIZE];
-//     int ret = sfs->read_fnc(address, len_buffer, sizeof(len_buffer));
-
-//     if (ret != sizeof(len_buffer)) {
-//         return SFS_FLASH_READ;
-//     }
-
-//     *len = len_buffer[1];
-//     *len |= (len_buffer[0] << 8);
-
-//     return SFS_OK;
-// }

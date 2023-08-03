@@ -6,6 +6,7 @@
 
 #define NO_MORE_DATA 0xFFFF
 #define SFS_EMPTY_VALUE 0x00
+#define FLASH_NO_DATA 0xFF
 
 #define MAX_FILE_NAME_SIZE 8
 #define FILE_PREFIX_SIZE 5
@@ -28,9 +29,12 @@ typedef enum {
     SFS_OK = 0,
     SFS_NULL_POINTER,
     SFS_FLASH_READ,
+    SFS_FLASH_WRITE,
     SFS_INVALID_PREFIX,
     SFS_INVALID_FILE_NAME,
     SFS_END_OF_DATA,
+    SFS_FLASH_FULL,
+    SFS_UNKNOWN,
 } sfs_err_t;
 
 typedef struct {
