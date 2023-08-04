@@ -8,6 +8,7 @@ add_executable(
 target_link_libraries(
   hello_test
   GTest::gtest_main
+  flash_mock
 )
 
 include(GoogleTest)
