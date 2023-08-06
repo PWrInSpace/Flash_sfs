@@ -24,6 +24,6 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 add_subdirectory(test)
 add_subdirectory(sfs)
 add_subdirectory(flash_mock)
-add_subdirectory(executables)
+add_subdirectory(examples)
 
 enable_testing()
