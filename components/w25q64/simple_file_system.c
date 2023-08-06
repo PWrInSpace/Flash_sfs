@@ -234,9 +234,11 @@ sfs_err_t read_file_info_from_sectors(sfs_t *sfs, sfs_file_t *file) {
         if (ret != SFS_OK) {
             return ret;
         }
-    } else { // TO DO find end of data in last sector
-        file->start_address = sector_to_address(sfs, file_first_sector); 
-    
+    } else {
+        ret = open_file(sfs, file, file_first_sector, file_last_sector);
+        if (ret != SFS_OK) {
+            return false;
+        }
     }
 
     return SFS_OK;
