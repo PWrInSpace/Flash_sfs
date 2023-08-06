@@ -1,15 +1,15 @@
 enable_testing()
 
 add_executable(
-  hello_test
-  hello_test.cpp
+  sfs_test
+  flash_mock_test.cpp
 )
 
 target_link_libraries(
-  hello_test
+  sfs_test
   GTest::gtest_main
   flash_mock
 )
 
 include(GoogleTest)
-gtest_discover_tests(hello_test)
+gtest_discover_tests(sfs_test)

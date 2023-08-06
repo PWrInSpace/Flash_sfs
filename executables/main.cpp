@@ -7,6 +7,5 @@ extern "C" {
 
 int main(void) {
     std::cout << "Hello world" << std::endl;
-    flash_mock_test();
     return 0;
 }
