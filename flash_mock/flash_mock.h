@@ -22,8 +22,8 @@ typedef struct {
 } flash_mock_t;
 
 bool flash_mock_init(flash_mock_t *dev, flash_mock_size_t size, uint32_t sector_size_kb);
-int flash_mock_write(flash_mock_t *dev, uint32_t sector, uint32_t addr, uint8_t *data, uint16_t size);
-int flash_mock_read(flash_mock_t *dev, uint32_t addr, uint8_t *data, uint16_t size);
+int flash_mock_write(flash_mock_t *dev, uint32_t sector, uint32_t addr, uint8_t *data, uint32_t size);
+int flash_mock_read(flash_mock_t *dev, uint32_t addr, uint8_t *data, uint32_t size);
 bool flash_mock_erase_sector(flash_mock_t *dev, uint32_t ssector);
 bool flash_mock_deinit(flash_mock_t *dev);
 

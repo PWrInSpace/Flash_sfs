@@ -30,7 +30,7 @@ bool flash_mock_init(flash_mock_t *dev, flash_mock_size_t size, uint32_t sector_
 }
 
 
-int flash_mock_write(flash_mock_t *dev, uint32_t sector, uint32_t addr, uint8_t *data, uint16_t size) {
+int flash_mock_write(flash_mock_t *dev, uint32_t sector, uint32_t addr, uint8_t *data, uint32_t size) {
     if (dev == NULL || dev->memory == NULL) {
         return -1;
     }
@@ -62,7 +62,7 @@ int flash_mock_write(flash_mock_t *dev, uint32_t sector, uint32_t addr, uint8_t 
     return ret;
 }
 
-int flash_mock_read(flash_mock_t *dev, uint32_t addr, uint8_t *data, uint16_t size) {
+int flash_mock_read(flash_mock_t *dev, uint32_t addr, uint8_t *data, uint32_t size) {
     if (dev == NULL || dev->memory == NULL) {
         return false;
     }

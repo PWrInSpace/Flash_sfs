@@ -22,7 +22,7 @@
     // printf(format, __VA_ARGS__)
 #endif
 
-typedef int(*sfs_flash_erase)(uint32_t address, uint32_t size);
+typedef bool(*sfs_flash_erase)(uint32_t sector);
 typedef int(*sfs_flash_read)(uint32_t address, uint8_t *buffer, uint32_t size);
 typedef int(*sfs_flash_write)(uint32_t address, uint8_t* buffer, uint32_t size);
 
@@ -65,7 +65,7 @@ typedef struct {
     sfs_flash_write write_fnc;
 } sfs_config_t;
 
-bool sfs_init(sfs_t *sfs, sfs_config_t *config);
+sfs_err_t sfs_init(sfs_t *sfs, sfs_config_t *config);
 sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name);
 // bool sfs_write(sfs_t *sfs, uint8_t *data, uint32_t size);
 // bool sfs_read_line(sfs_t *sfs, uint8_t *buffer, uint16_t buffer_size);

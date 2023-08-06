@@ -5,9 +5,9 @@
 
 static uint8_t file_prefix[FILE_PREFIX_SIZE] = {0xFF, 0xFF, 0x53, 0x46, 0x53};
 
-bool sfs_init(sfs_t *sfs, sfs_config_t *config) {
+sfs_err_t sfs_init(sfs_t *sfs, sfs_config_t *config) {
     if (sfs == NULL) {
-        return false;
+        return SFS_NULL_POINTER;
     }
 
     (void) memset(sfs, SFS_EMPTY_VALUE, sizeof(sfs_t));
@@ -18,7 +18,7 @@ bool sfs_init(sfs_t *sfs, sfs_config_t *config) {
     sfs->flash_size_bits = MB_TO_BITS(config->flash_size_mb);
     sfs->flash_sector_bits = KB_TO_BITS(config->flash_sector_kb);
 
-    return true;
+    return SFS_OK;
 }
 
 static bool uint8_cmpr(uint8_t *buf1, uint8_t *buf2, size_t size) {
