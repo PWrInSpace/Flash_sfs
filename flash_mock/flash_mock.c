@@ -46,15 +46,61 @@ int flash_mock_write(flash_mock_t *dev, uint32_t sector, uint32_t addr, uint8_t 
     }
 
     // Check if data move over memory size
-    uint32_t data_end_address = sector * dev->sector_size_bytes + addr + size;
-    if (data_end_address > dev->memory_size_bytes) {
-        size = size - (data_end_address - dev->memory_size_bytes);
+    uint32_t data_start_address = sector * dev->sector_size_bytes + addr;
+    if ((data_start_address + size) > dev->memory_size_bytes) {
+        size = dev->memory_size_bytes - data_start_address;
     }
 
-    (void) memcpy(dev->memory + ((sector * dev->sector_size_bytes) + addr), data, size);
+    int ret = 0;
+    for (uint32_t i = 0; i < size; ++i) {
+        if (i < dev->memory_size_bytes) {
+            // TO DO: better function to mock multiply writing to the same address
+            dev->memory[data_start_address + i] = dev->memory[data_start_address + i] & data[i];
+            ret += 1;
+        }
+    }
+    return ret;
+}
+
+int flash_mock_read(flash_mock_t *dev, uint32_t addr, uint8_t *data, uint16_t size) {
+    if (dev == NULL || dev->memory == NULL) {
+        return false;
+    }
+    
+    if (addr >= dev->memory_size_bytes) {
+        return -1;
+    }
+
+
+    if (addr + size >= dev->memory_size_bytes) {
+        size = dev->memory_size_bytes - addr - 1; // Minus one to start from 0
+    }
+
+    memcpy(data, dev->memory + addr, size);
+
     return size;
 }
 
-// int flash_mock_read(flash_mock_t *dev, uint32_t addr, uint8_t *data, uint16_t size) {
-//     return size;
-// }
+bool flash_mock_erase_sector(flash_mock_t * dev, uint32_t sector) {
+    if (dev == NULL || dev->memory == NULL) {
+        return false;
+    }
+
+    if (sector >= dev->memory_size_bytes / dev->sector_size_bytes) {
+        return false;
+    }
+
+    (void) memset(dev->memory + dev->sector_size_bytes * sector,
+                    ERASED_BYTE, dev->sector_size_bytes);
+    
+    return true;
+}
+
+bool flash_mock_deinit(flash_mock_t *dev) {
+    if (dev == NULL || dev->memory == NULL) {
+        return false;
+    }
+
+    (void) free(dev->memory);
+    return true;
+}
