@@ -53,17 +53,26 @@ TEST(FlashMock, check_memory_init) {
     }
 }
 
-// TEST(FlashMock, write_invalid_sector) {
-//     EXPECT_EQ(0, 0);
-// }
+TEST(FlashMock, write_invalid_sector) {
+    flash_mock_t dev;
+    uint8_t data[15] = {0};
+    EXPECT_EQ(true, flash_mock_init(&dev, SIZE_16MB, 16));
+    EXPECT_EQ(-1, flash_mock_write(&dev, 1024, 10, data, sizeof(data)));
+}
 
-// TEST(FlashMock, write_invalid_address) {
-//     EXPECT_EQ(0, 0);
-// }
+TEST(FlashMock, write_invalid_address) {
+    flash_mock_t dev;
+    uint8_t data[15] = {0};
+    EXPECT_EQ(true, flash_mock_init(&dev, SIZE_16MB, 16));
+    EXPECT_EQ(-1, flash_mock_write(&dev, 3, 16921, data, sizeof(data)));
+}
 
-// TEST(FlashMock, write_over_memory) {
-//     EXPECT_EQ(0, 0);
-// }
+TEST(FlashMock, write_over_memory) {
+    flash_mock_t dev;
+    uint8_t data[15] = {0};
+    EXPECT_EQ(true, flash_mock_init(&dev, SIZE_16MB, 16));
+    EXPECT_EQ(4, flash_mock_write(&dev, 1023, 16380, data, sizeof(data)));
+}
 
 // TEST(FlashMock, read_invalid_sector) {
 //     EXPECT_EQ(0, 0);
