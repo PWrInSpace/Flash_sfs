@@ -162,7 +162,7 @@ TEST(FlashMock, multi_write) {
     flash_mock_deinit(&dev);
 }
 
-TEST(FlashMock, erase_invalid_secotr) {
+TEST(FlashMock, erase_invalid_sector) {
     flash_mock_t dev;
     uint32_t secotrs = 1024;
     EXPECT_EQ(true, flash_mock_init(&dev, SIZE_16MB, 16));
