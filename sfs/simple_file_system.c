@@ -95,12 +95,11 @@ sfs_err_t sector_belongs_to_file(sfs_t *sfs, sfs_file_t *file, uint32_t sector, 
 }
 
 sfs_err_t file_first_last_sector(sfs_t *sfs, sfs_file_t *file, int32_t *first, int32_t *last) {
-    sfs_err_t ret = SFS_OK;
     uint32_t number_of_sectors = sfs->flash_size_bits / sfs->flash_sector_bits;
     bool belongs_to_file = false;
 
     for (uint32_t sector = 0; sector < number_of_sectors; ++sector) {
-        ret = sector_belongs_to_file(sfs, file, sector, &belongs_to_file);
+        sfs_err_t ret = sector_belongs_to_file(sfs, file, sector, &belongs_to_file);
         if (ret != SFS_OK) {
             return ret;
         }
@@ -123,8 +122,8 @@ sfs_err_t find_free_sector(sfs_t *sfs, int32_t *sector) {
     int32_t first_sector_without_data = -1;
     uint8_t sector_first_element = 0;
 
-    for (int32_t sector = 0; sector < number_of_sectors; ++sector) {
-        int len = sfs->read_fnc(sector_to_address(sfs, sector), &sector_first_element, 
+    for (int32_t i = 0; i < number_of_sectors; ++i) {
+        int len = sfs->read_fnc(sector_to_address(sfs, i), &sector_first_element, 
                                 sizeof(sector_first_element));
 
         if (len != sizeof(sector_first_element)) {
@@ -132,9 +131,9 @@ sfs_err_t find_free_sector(sfs_t *sfs, int32_t *sector) {
         }
 
         if (sector_first_element == FLASH_NO_DATA) {
-            last_sector_with_data = sector;
+            last_sector_with_data = i;
         } else if (first_sector_without_data < 0) {
-            first_sector_without_data = sector;
+            first_sector_without_data = i;
         }
     }
 
@@ -183,13 +182,12 @@ sfs_err_t create_file(sfs_t *sfs, sfs_file_t *file, int32_t sector) {
 }
 
 sfs_err_t open_file(sfs_t *sfs, sfs_file_t *file, int32_t start_sector, int32_t end_sector) {
-    sfs_err_t ret = SFS_OK;
     uint32_t cursor = sector_to_address(sfs, end_sector) + FILE_INFO_SIZE;
     uint16_t data_len = 0;
 
 
     while(cursor < sfs->flash_sector_bits || data_len != NO_MORE_DATA) {
-        ret = get_data_len(sfs, cursor, &data_len);
+        sfs_err_t ret = get_data_len(sfs, cursor, &data_len);
         if (ret != SFS_OK) {
             return ret;
         }
