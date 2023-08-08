@@ -12,11 +12,7 @@ jobs:
               uses: sudo apt-get install cppcheck
             
             - name: Linter
-              uses: 
-                cppcheck 
-                --suppressions-list=cppcheck_suppressions.txt 
-                --enable=all 
-                -i build .
+              uses: cppcheck --suppressions-list=cppcheck_suppressions.txt --enable=all -i build .
             
             - name: Build
               run: cmake -S . -B build && cmake --build build -j 12
