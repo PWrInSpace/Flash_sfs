@@ -36,6 +36,8 @@ typedef enum {
     SFS_END_OF_DATA,
     SFS_FLASH_FULL,
     SFS_UNKNOWN,
+    SFS_INVALID_SIZE,
+    SFS_INVALID_VALUE,
 } sfs_err_t;
 
 typedef struct {
