@@ -16,11 +16,14 @@
 #define MB_TO_BITS(x) (x * 1024 * 1024)
 #define KB_TO_BITS(x) (x * 1024)
 
-#define SFS_DEBUG_ON
-#define SFS_DEBUG(format, ...) 
-#ifdef SFS_DEBUG_ON
-    // printf(format, __VA_ARGS__)
+// #define SFS_DEBUG_ON
+#ifdef SFS_DEBUG_ON 
+#define SFS_DEBUG(format, ...) printf("SFS_D: "format"\n", __VA_ARGS__)
+#else
+#define SFS_DEBUG(format, ...)
 #endif
+
+extern uint8_t file_prefix[FILE_PREFIX_SIZE]; // Testing purpose
 
 typedef bool(*sfs_flash_erase)(uint32_t sector);
 typedef int(*sfs_flash_read)(uint32_t address, uint8_t *buffer, uint32_t size);

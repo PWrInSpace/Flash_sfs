@@ -3,7 +3,8 @@
 #include <memory.h>
 #include <string.h>
 
-static uint8_t file_prefix[FILE_PREFIX_SIZE] = {0xFF, 0xFF, 0x53, 0x46, 0x53};
+uint8_t file_prefix[FILE_PREFIX_SIZE] = {0xFF, 0xFF, 0x53, 0x46, 0x53};
+
 
 sfs_err_t sfs_init(sfs_t *sfs, sfs_config_t *config) {
     if (sfs == NULL) {
@@ -142,16 +143,18 @@ static sfs_err_t find_free_sector(sfs_t *sfs, int32_t *sector) {
             return SFS_FLASH_READ;
         }
 
-        if (sector_first_element == FLASH_NO_DATA) {
+        if (sector_first_element != FLASH_NO_DATA) {
             last_sector_with_data = i;
-        } else if (first_sector_without_data < 0) {
+        }
+
+        if (first_sector_without_data < 0) {
             first_sector_without_data = i;
         }
     }
 
     // TO DO Check wear leveling
     if ((last_sector_with_data + 1)  == number_of_sectors) {
-        // Last sector has data go to firs sector without data
+        // Last sector has data, go to firts sector without data
         *sector = first_sector_without_data;
     } else {
         // Last sector with data is not at the end 
