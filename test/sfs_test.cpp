@@ -68,7 +68,7 @@ class FlashTest: public ::testing::Test {
         mock_deinit();
     }
 
-    bool checkFile(uint32_t sector, char* file_name) {
+    bool checkSectorFileName(uint32_t sector, char* file_name) {
         uint32_t secotr_size = this->file_system->flash_sector_bits;
         uint8_t *file_sector_ptr = &this->memory->memory[secotr_size * sector]; 
 
@@ -91,26 +91,46 @@ class FlashTest: public ::testing::Test {
     }
 
     void dump256(uint32_t sector, uint32_t address) {
-        uint32_t secotr_size = this->file_system->flash_sector_bits;
-        uint8_t *file_sector_ptr = &this->memory->memory[secotr_size * sector] + address; 
+        uint32_t sector_size = this->file_system->flash_sector_bits;
+        uint8_t *file_sector_ptr = &this->memory->memory[sector_size * sector] + address; 
 
         for (int i = 0; i < 256; ++i) {
             if (i % 0xF == 0) {
                 std::cout << std::endl << std::hex << i / 0xF << "\t| ";
             }
     
-            // std::cout << file_sector_ptr[i] << ' ';
             printf("0x%2.X \t", file_sector_ptr[i]);
         }
         std::cout << std::endl;
     }
 
-    bool checkCurrentSector(sfs_file_t *file, uint32_t sector) {
+    bool checkFileStartAddress(sfs_file_t *file, uint32_t sector) {
         uint32_t secotr_size = this->file_system->flash_sector_bits;
         if (file->start_address != secotr_size * sector) {
             return false;
         }
 
+        return true;
+    }
+
+    bool checkFileEndAddress(sfs_file_t *file, uint32_t sector, uint32_t address) {
+        uint32_t sector_size = this->file_system->flash_sector_bits;
+        if (file->end_address != ((sector_size * sector) + address)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool setMemory(uint32_t sector, uint32_t address, uint8_t val, uint32_t size) {
+        uint32_t sector_size = this->file_system->flash_sector_bits;
+        uint8_t *file_sector_pointer = &this->memory->memory[sector_size * sector] + address;
+        if (size + address > sector_size) {
+            return false;
+        }
+
+        (void) memset(file_sector_pointer, val, size);   
+    
         return true;
     }
 };
@@ -138,6 +158,82 @@ TEST_F(FlashTest, Open_valid_file_name) {
               sfs_open(this->file_system, &file, file_name));
 
     // Check that file was created 
-    EXPECT_EQ(true, this->checkCurrentSector(&file, 1));
-    EXPECT_EQ(true, this->checkFile(1, file_name));
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE));
+    EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+}
+
+TEST_F(FlashTest, Open_two_file) {
+    char file_name[] = "file1";
+    char file_name2[] = "file2";
+    sfs_file_t file;
+    sfs_file_t file2;
+    EXPECT_EQ(SFS_OK,
+              sfs_open(this->file_system, &file, file_name));
+    EXPECT_EQ(SFS_OK,
+              sfs_open(this->file_system, &file2, file_name2));
+
+    // Check that file was created 
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
+    EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+    EXPECT_EQ(true, this->checkFileStartAddress(&file2, 1));
+    EXPECT_EQ(true, this->checkSectorFileName(1, file_name2));
+}
+
+TEST_F(FlashTest, Open_previous_created_file) {
+    char file_name[] = "file1";
+    char file_name2[] = "file2";
+    sfs_file_t file;
+    sfs_file_t file2;
+    
+    // create two files
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file2, file_name2));
+    
+    // close first file
+    EXPECT_EQ(SFS_OK, sfs_close(this->file_system, &file));
+    
+    // reopen first file
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
+    EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+}
+
+TEST_F(FlashTest, WL_new_file) {
+    char file_name[] = "file2";
+    sfs_file_t file;
+
+    EXPECT_EQ(true, this->setMemory(2, 0, 12, 10));
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 3));
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 3, FILE_INFO_SIZE));
+    EXPECT_EQ(true, this->checkSectorFileName(3, file_name));
+}
+
+TEST_F(FlashTest, WL_new_last_sector) {
+    char file_name[] = "file2";
+    sfs_file_t file;
+    uint32_t nb_of_sectors = this->file_system->flash_size_bits / this->file_system->flash_sector_bits;
+
+    EXPECT_EQ(true, this->setMemory(nb_of_sectors - 1, 0, 12, 10));
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE));
+    EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+}
+
+TEST_F(FlashTest, WL_new_last_sector_with_data_in_the_middle) {
+    char file_name[] = "file2";
+    sfs_file_t file;
+    uint32_t nb_of_sectors = this->file_system->flash_size_bits / this->file_system->flash_sector_bits;
+
+    EXPECT_EQ(true, this->setMemory(nb_of_sectors - 1, 0, 12, 10));
+    EXPECT_EQ(true, this->setMemory(3, 0, 12, 10));
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE));
+    EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
 }

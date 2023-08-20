@@ -3,7 +3,7 @@
 #include <memory.h>
 #include <string.h>
 
-uint8_t file_prefix[FILE_PREFIX_SIZE] = {0xFF, 0xFF, 0x53, 0x46, 0x53};
+uint8_t file_prefix[FILE_PREFIX_SIZE] = {0x53, 0x46, 0x53};
 
 
 sfs_err_t sfs_init(sfs_t *sfs, sfs_config_t *config) {
@@ -133,17 +133,17 @@ static sfs_err_t find_free_sector(sfs_t *sfs, int32_t *sector) {
     int32_t number_of_sectors = sfs->flash_size_bits / sfs->flash_sector_bits;
     int32_t last_sector_with_data = -1;
     int32_t first_sector_without_data = -1;
-    uint8_t sector_first_element = 0;
+    uint8_t sector_third_element = 0;
 
     for (int32_t i = 0; i < number_of_sectors; ++i) {
-        int len = sfs->read_fnc(sector_to_address(sfs, i), &sector_first_element, 
-                                sizeof(sector_first_element));
+        int len = sfs->read_fnc(sector_to_address(sfs, i), &sector_third_element, 
+                                sizeof(sector_third_element));
 
-        if (len != sizeof(sector_first_element)) {
+        if (len != sizeof(sector_third_element)) {
             return SFS_FLASH_READ;
         }
 
-        if (sector_first_element != FLASH_NO_DATA) {
+        if (sector_third_element != FLASH_NO_DATA) {
             last_sector_with_data = i;
         }
 
@@ -202,6 +202,8 @@ static sfs_err_t open_file(sfs_t *sfs, sfs_file_t *file, int32_t start_sector, i
 
 
     while(cursor < sfs->flash_sector_bits || data_len != NO_MORE_DATA) {
+        cursor += data_len;
+
         sfs_err_t ret = get_data_len(sfs, cursor, &data_len);
         if (ret != SFS_OK) {
             return ret;
@@ -230,6 +232,7 @@ static sfs_err_t read_file_info_from_sectors(sfs_t *sfs, sfs_file_t *file) {
     if (file_first_sector == -1) {
         int32_t last_sector = 0;
         ret = find_free_sector(sfs, &last_sector);
+        SFS_DEBUG("Find free sector %d", last_sector);
         if (ret != SFS_OK) {
             return ret;
         }
@@ -238,7 +241,7 @@ static sfs_err_t read_file_info_from_sectors(sfs_t *sfs, sfs_file_t *file) {
             return SFS_FLASH_FULL;
         }
 
-        ret = create_file(sfs, file, last_sector + 1);
+        ret = create_file(sfs, file, last_sector);
         if (ret != SFS_OK) {
             return ret;
         }
@@ -266,7 +269,12 @@ sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name) {
     }
 
     return SFS_OK;
-} 
+}
+
+sfs_err_t sfs_close(sfs_t *sfs, sfs_file_t *file) {
+    (void) memset(file, 0, sizeof(sfs_file_t));
+    return SFS_OK;
+}
 
 
 
