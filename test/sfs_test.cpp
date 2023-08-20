@@ -116,6 +116,7 @@ class FlashTest: public ::testing::Test {
     bool checkFileEndAddress(sfs_file_t *file, uint32_t sector, uint32_t address) {
         uint32_t sector_size = this->file_system->flash_sector_bits;
         if (file->end_address != ((sector_size * sector) + address)) {
+            std::cout << "FILE END ADDRES: " << file->end_address << std::endl;
             return false;
         }
 
@@ -236,4 +237,43 @@ TEST_F(FlashTest, WL_new_last_sector_with_data_in_the_middle) {
     EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
     EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE));
     EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+}
+
+TEST_F(FlashTest, Write_to_file) {
+    char file_name[] = "file";
+    sfs_file_t file;
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    uint8_t data[10] = {0x32};
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, sizeof(data)));
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE + 2 + sizeof(data)));
+}
+
+TEST_F(FlashTest, Reopen_file_with_data) {
+    char file_name[] = "file";
+    sfs_file_t file;
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    uint8_t data[10] = {0x32};
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, sizeof(data)));
+
+    EXPECT_EQ(SFS_OK, sfs_close(this->file_system, &file));
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE + 2 + sizeof(data)));
+}
+
+TEST_F(FlashTest, Reopen_file_with_data_2) {
+    char file_name[] = "file";
+    sfs_file_t file;
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    uint8_t data[10] = {0x32};
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, sizeof(data)));
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, sizeof(data)));
+
+    EXPECT_EQ(SFS_OK, sfs_close(this->file_system, &file));
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE + 2*(2 + sizeof(data))));
 }

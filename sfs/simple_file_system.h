@@ -8,6 +8,7 @@
 #define NO_MORE_DATA 0xFFFF
 #define SFS_EMPTY_VALUE 0x00
 #define FLASH_NO_DATA 0xFF
+#define DATA_SIZE_LEN 0x02
 
 #define MAX_FILE_NAME_SIZE 8
 #define FILE_PREFIX_SIZE 3
@@ -42,6 +43,8 @@ typedef enum {
     SFS_UNKNOWN,
     SFS_INVALID_SIZE,
     SFS_INVALID_VALUE,
+    SFS_FILE_NOT_OPEN,
+    SFS_DATA_SIZE_ZERO,
 } sfs_err_t;
 
 typedef struct {
@@ -73,7 +76,7 @@ typedef struct {
 
 sfs_err_t sfs_init(sfs_t *sfs, sfs_config_t *config);
 sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name);
-// bool sfs_write(sfs_t *sfs, uint8_t *data, uint32_t size);
+sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size);
 // bool sfs_read_line(sfs_t *sfs, uint8_t *buffer, uint16_t buffer_size);
 sfs_err_t sfs_close(sfs_t *sfs, sfs_file_t *file);
 

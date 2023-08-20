@@ -201,13 +201,21 @@ static sfs_err_t open_file(sfs_t *sfs, sfs_file_t *file, int32_t start_sector, i
     uint16_t data_len = 0;
 
 
-    while(cursor < sfs->flash_sector_bits || data_len != NO_MORE_DATA) {
-        cursor += data_len;
-
+    while(cursor < sfs->flash_sector_bits) {
         sfs_err_t ret = get_data_len(sfs, cursor, &data_len);
         if (ret != SFS_OK) {
             return ret;
         }
+        
+        if (data_len == 0) {
+            return SFS_DATA_SIZE_ZERO;
+        }
+
+        if (data_len == NO_MORE_DATA) {
+            break;
+        }
+
+        cursor += data_len + DATA_SIZE_LEN;
     }
 
     file->start_address = sector_to_address(sfs, start_sector);
@@ -266,6 +274,55 @@ sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name) {
     ret = read_file_info_from_sectors(sfs, file);
     if (ret != SFS_OK) {
         return ret;
+    }
+
+    return SFS_OK;
+}
+
+bool is_open(sfs_file_t *file) {
+    return true;
+}
+
+sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) {
+    if (is_open(file) == false) {
+        return SFS_FILE_NOT_OPEN;
+    }
+
+    
+    uint32_t memory_pointer = file->end_address;
+    uint32_t sector_free_size = sfs->flash_sector_bits - memory_pointer;
+    uint16_t first_write_size = 0;
+    // get first write size
+    if (sector_free_size - 1 > size) {
+        first_write_size = size;
+    } else {
+        first_write_size = sector_free_size - 1;
+    }
+
+    // write size 
+    uint8_t size_data[2];
+    size_data[0] = (first_write_size >> 8) & 0xFF;
+    size_data[1] = first_write_size & 0xFF;
+    int ret_size = sfs->write_fnc(memory_pointer, size_data, sizeof(size_data));
+    file->end_address += ret_size;
+    if (ret_size != sizeof(size_data)) {
+        return SFS_FLASH_WRITE;
+    }
+
+    // write data
+    ret_size = sfs->write_fnc(memory_pointer + 2, data, first_write_size);
+    file->end_address += ret_size;
+    if (ret_size != first_write_size) {
+        return SFS_FLASH_WRITE;
+    }
+
+    // end of sector 
+    if (first_write_size != size) {
+        // find free sector
+        // write number of new sector to last memory position in current sector
+        // open new sector
+        // write size
+        // write data
     }
 
     return SFS_OK;
