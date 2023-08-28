@@ -60,6 +60,7 @@ typedef struct {
     sfs_flash_erase erase_fnc;
     sfs_flash_read read_fnc;
     sfs_flash_write write_fnc;
+    int32_t next_free_sector;
 
     uint32_t flash_size_bits;
     uint32_t flash_sector_bits;

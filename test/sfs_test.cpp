@@ -104,6 +104,10 @@ class FlashTest: public ::testing::Test {
         std::cout << std::endl;
     }
 
+    bool checkSFSNextFreeSector(int32_t sector) {
+        return this->file_system->next_free_sector == sector;
+    }
+
     bool checkFileStartAddress(sfs_file_t *file, uint32_t sector) {
         uint32_t secotr_size = this->file_system->flash_sector_bits;
         if (file->start_address != secotr_size * sector) {
@@ -162,6 +166,7 @@ TEST_F(FlashTest, Open_valid_file_name) {
     EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
     EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE));
     EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+    EXPECT_EQ(true, this->checkSFSNextFreeSector(1));
 }
 
 TEST_F(FlashTest, Open_two_file) {
@@ -179,6 +184,7 @@ TEST_F(FlashTest, Open_two_file) {
     EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
     EXPECT_EQ(true, this->checkFileStartAddress(&file2, 1));
     EXPECT_EQ(true, this->checkSectorFileName(1, file_name2));
+    EXPECT_EQ(true, this->checkSFSNextFreeSector(2));
 }
 
 TEST_F(FlashTest, Open_previous_created_file) {
@@ -198,9 +204,10 @@ TEST_F(FlashTest, Open_previous_created_file) {
     EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
     EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
     EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+    EXPECT_EQ(true, this->checkSFSNextFreeSector(2));
 }
 
-TEST_F(FlashTest, WL_new_file) {
+TEST_F(FlashTest, WearLevel_new_file) {
     char file_name[] = "file2";
     sfs_file_t file;
 
@@ -210,9 +217,10 @@ TEST_F(FlashTest, WL_new_file) {
     EXPECT_EQ(true, this->checkFileStartAddress(&file, 3));
     EXPECT_EQ(true, this->checkFileEndAddress(&file, 3, FILE_INFO_SIZE));
     EXPECT_EQ(true, this->checkSectorFileName(3, file_name));
+    EXPECT_EQ(true, this->checkSFSNextFreeSector(4));
 }
 
-TEST_F(FlashTest, WL_new_last_sector) {
+TEST_F(FlashTest, WearLevel_new_last_sector) {
     char file_name[] = "file2";
     sfs_file_t file;
     uint32_t nb_of_sectors = this->file_system->flash_size_bits / this->file_system->flash_sector_bits;
@@ -223,9 +231,10 @@ TEST_F(FlashTest, WL_new_last_sector) {
     EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
     EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE));
     EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+    EXPECT_EQ(true, this->checkSFSNextFreeSector(1));
 }
 
-TEST_F(FlashTest, WL_new_last_sector_with_data_in_the_middle) {
+TEST_F(FlashTest, WearLevel_new_last_sector_with_data_in_the_middle_and_end) {
     char file_name[] = "file2";
     sfs_file_t file;
     uint32_t nb_of_sectors = this->file_system->flash_size_bits / this->file_system->flash_sector_bits;
@@ -237,6 +246,7 @@ TEST_F(FlashTest, WL_new_last_sector_with_data_in_the_middle) {
     EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
     EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE));
     EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+    EXPECT_EQ(true, this->checkSFSNextFreeSector(1));
 }
 
 TEST_F(FlashTest, Write_to_file) {
