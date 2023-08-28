@@ -149,3 +149,45 @@ TEST_F(FlashTest, Reopen_file_with_data_2) {
 
     EXPECT_EQ(true, this->checkFileEndAddress(&file, 0, FILE_INFO_SIZE + 2*(2 + sizeof(data))));
 }
+
+TEST_F(FlashTest, Write_end_of_sector_edge_case) {
+    char file_name[] = "file";
+    sfs_file_t file;
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+    uint32_t sector_free_size = this->file_system->flash_sector_bits - FILE_INFO_SIZE;
+    uint32_t data_size = sector_free_size - END_OF_SECTOR_SIZE - DATA_LEN_SIZE;
+    // uint8_t data[120] = {0x12};
+    uint8_t *data = new uint8_t[data_size];
+    (void) memset(data, 0x12, data_size);
+    // EXPECT_EQ(true, this->write2Bytes(0, FILE_INFO_SIZE, data_size));
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
+    delete[] data;
+    
+    EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+    EXPECT_EQ(true, this->checkSectorFileName(1, file_name));
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 1, FILE_INFO_SIZE + data_size + DATA_LEN_SIZE));
+
+}
+
+TEST_F(FlashTest, Write_end_of_sector) {
+    char file_name[] = "file";
+    sfs_file_t file;
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+    uint32_t sector_free_size = this->file_system->flash_sector_bits - FILE_INFO_SIZE;
+    uint32_t data_size = sector_free_size - END_OF_SECTOR_SIZE - DATA_LEN_SIZE - 20;
+    // uint8_t data[120] = {0x12};
+    uint8_t *data = new uint8_t[data_size];
+    (void) memset(data, 0x12, data_size);
+    // EXPECT_EQ(true, this->write2Bytes(0, FILE_INFO_SIZE, data_size));
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
+    delete[] data;
+    
+    EXPECT_EQ(true, this->checkSectorFileName(0, file_name));
+    EXPECT_EQ(true, this->checkSectorFileName(1, file_name));
+    EXPECT_EQ(true, this->checkFileStartAddress(&file, 0));
+    EXPECT_EQ(true, this->checkFileEndAddress(&file, 1, FILE_INFO_SIZE + data_size - 18 + DATA_LEN_SIZE));
+
+}

@@ -110,6 +110,7 @@ bool FlashTest::checkFileEndAddress(sfs_file_t *file, uint32_t sector, uint32_t 
     uint32_t sector_size = this->file_system->flash_sector_bits;
     if (file->end_address != ((sector_size * sector) + address)) {
         std::cout << "FILE END ADDRES: " << file->end_address << std::endl;
+        std::cout << "Calculated: " << (sector_size * sector) + address << std::endl;
         return false;
     }
 
@@ -127,3 +128,20 @@ bool FlashTest::setMemory(uint32_t sector, uint32_t address, uint8_t val, uint32
     
     return true;
 }
+
+bool FlashTest::write2Bytes(uint32_t sector, uint32_t address, uint16_t data) {
+    uint32_t sector_size = this->file_system->flash_sector_bits;
+    uint8_t *file_sector_pointer = &this->memory->memory[sector_size * sector] + address;
+     if (sizeof(data) + address > sector_size) {
+        return false;
+    }
+
+    uint8_t two_bytes[2];
+    two_bytes[0] = (data >> 8) & 0xFF;
+    two_bytes[1] = data & 0xFF;
+    (void) memcpy(file_sector_pointer, two_bytes, sizeof(two_bytes));  
+
+    return true;
+}
+
+
