@@ -3,13 +3,14 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #define NO_MORE_DATA 0xFFFF
 #define SFS_EMPTY_VALUE 0x00
 #define FLASH_NO_DATA 0xFF
 
 #define MAX_FILE_NAME_SIZE 8
-#define FILE_PREFIX_SIZE 5
+#define FILE_PREFIX_SIZE 3
 #define DATA_LEN_SIZE 2
 #define FILE_INFO_SIZE (MAX_FILE_NAME_SIZE + FILE_PREFIX_SIZE)
 
@@ -17,10 +18,13 @@
 #define KB_TO_BITS(x) (x * 1024)
 
 #define SFS_DEBUG_ON
-#define SFS_DEBUG(format, ...) 
-#ifdef SFS_DEBUG_ON
-    // printf(format, __VA_ARGS__)
+#ifdef SFS_DEBUG_ON 
+#define SFS_DEBUG(format, ...) printf("SFS_D: "format"\n", __VA_ARGS__)
+#else
+#define SFS_DEBUG(format, ...)
 #endif
+
+extern uint8_t file_prefix[FILE_PREFIX_SIZE]; // Testing purpose
 
 typedef bool(*sfs_flash_erase)(uint32_t sector);
 typedef int(*sfs_flash_read)(uint32_t address, uint8_t *buffer, uint32_t size);
@@ -36,6 +40,8 @@ typedef enum {
     SFS_END_OF_DATA,
     SFS_FLASH_FULL,
     SFS_UNKNOWN,
+    SFS_INVALID_SIZE,
+    SFS_INVALID_VALUE,
 } sfs_err_t;
 
 typedef struct {
@@ -69,6 +75,7 @@ sfs_err_t sfs_init(sfs_t *sfs, sfs_config_t *config);
 sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name);
 // bool sfs_write(sfs_t *sfs, uint8_t *data, uint32_t size);
 // bool sfs_read_line(sfs_t *sfs, uint8_t *buffer, uint16_t buffer_size);
+sfs_err_t sfs_close(sfs_t *sfs, sfs_file_t *file);
 
 
 #define SFS_FILE_INIT_DEFAULT() \

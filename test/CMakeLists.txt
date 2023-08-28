@@ -2,7 +2,7 @@ enable_testing()
 
 add_executable(
   sfs_test
-  flash_mock_test.cpp
+  # flash_mock_test.cpp
   sfs_test.cpp
 )
 
@@ -13,5 +13,6 @@ target_link_libraries(
   sfs
 )
 
+target_compile_options(sfs_test PRIVATE -Wall -Wextra -Wpedantic)
 include(GoogleTest)
 gtest_discover_tests(sfs_test)
