@@ -113,9 +113,7 @@ static sfs_err_t get_first_last_sector(sfs_t *sfs, sfs_file_t *file, int32_t *fi
 
     for (uint32_t sector = 0; sector < number_of_sectors; ++sector) {
         sfs_err_t ret = sector_belongs_to_file(sfs, file, sector, &belongs_to_file);
-        if (ret != SFS_OK) {
-            return ret;
-        }
+        SFS_RETURN_ON_ERR(ret);
 
         if (belongs_to_file == true) {
             if (*first < 0) {
@@ -201,9 +199,7 @@ static sfs_err_t open_file(sfs_t *sfs, sfs_file_t *file, int32_t start_sector, i
 
     while(cursor < sfs->flash_sector_bits) {
         sfs_err_t ret = get_data_len(sfs, cursor, &data_len);
-        if (ret != SFS_OK) {
-            return ret;
-        }
+        SFS_RETURN_ON_ERR(ret);
         
         if (data_len == 0) {
                  return SFS_DATA_SIZE_ZERO;
@@ -229,33 +225,24 @@ static sfs_err_t read_file_info_from_sectors(sfs_t *sfs, sfs_file_t *file) {
     int32_t file_last_sector = -1;
     
     ret = get_first_last_sector(sfs, file, &file_first_sector, &file_last_sector);
-    SFS_DEBUG("First sector %d\t Last sector %d", (int)file_first_sector, (int)file_last_sector);
-    if (ret != SFS_OK) {
-        return ret;
-    }
+    SFS_RETURN_ON_ERR(ret);
 
     // There is no sector with this file name 
     if (file_first_sector == -1) {
         int32_t last_sector = 0;
         ret = find_free_sector(sfs, &last_sector);
-        SFS_DEBUG("Find free sector %d", last_sector);
-        if (ret != SFS_OK) {
-            return ret;
-        }
+        SFS_RETURN_ON_ERR(ret);
 
         if (last_sector < 0) {
             return SFS_FLASH_FULL;
         }
 
         ret = create_file(sfs, file, last_sector);
-        if (ret != SFS_OK) {
-            return ret;
-        }
+        SFS_RETURN_ON_ERR(ret);
+
     } else {
         ret = open_file(sfs, file, file_first_sector, file_last_sector);
-        if (ret != SFS_OK) {
-            return false;
-        }
+        SFS_RETURN_ON_ERR(ret);
     }
 
     return SFS_OK;
@@ -265,19 +252,13 @@ sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name) {
     sfs_err_t ret;
     
     ret = set_file_name(file, file_name);
-    if (ret != SFS_OK) {
-        return ret;
-    }
+    SFS_RETURN_ON_ERR(ret);
 
     ret = read_file_info_from_sectors(sfs, file);
-    if (ret != SFS_OK) {
-        return ret;
-    }
+    SFS_RETURN_ON_ERR(ret);
 
     ret = find_free_sector(sfs, &sfs->next_free_sector);
-    if (ret != SFS_OK) {
-        return ret;
-    }
+    SFS_RETURN_ON_ERR(ret);
 
     return SFS_OK;
 }
@@ -405,27 +386,41 @@ static sfs_err_t read_2bytes(sfs_t *sfs, sfs_file_t *file, uint16_t *ret_val) {
     return SFS_OK;
 }
 
-sfs_err_t sfs_read_line(sfs_t *sfs, sfs_file_t *file, uint8_t *buffer, uint16_t buffer_size) {
-    sfs_err_t ret;
-    SFS_DEBUG("ADD point %d", file->address_pointer);
-    if ((file->address_pointer % sfs->flash_sector_bits) == (sfs->flash_sector_bits - 2)) {
-        uint16_t sector;
-        ret = read_2bytes(sfs, file, &sector);
-        if (ret != SFS_OK) {
-            return ret;
-        }
-
-        file->address_pointer = sector * sfs->flash_sector_bits + FILE_INFO_SIZE;
-
-    } else if ((file->address_pointer % sfs->flash_sector_bits) > (sfs->flash_sector_bits - 2)) {
-        return SFS_DATA_CORRUPTED;
+static bool address_on_end_of_sector(sfs_t *sfs, uint32_t address) {
+    uint32_t position_in_sector = address % sfs->flash_sector_bits;
+    if (position_in_sector != sfs->flash_sector_bits - END_OF_SECTOR_SIZE) {
+        return false;
     }
 
+    return true;
+}
+
+static bool address_after_end_of_sector(sfs_t *sfs, uint32_t address) {
+    uint32_t position_in_sector = address % sfs->flash_sector_bits;
+    if (position_in_sector < sfs->flash_sector_bits - END_OF_SECTOR_SIZE) {
+        return false;
+    }
+
+    return true;
+}
+
+static sfs_err_t move_ptr_to_next_sector(sfs_t *sfs, sfs_file_t *file) {
+    uint16_t sector;
+    sfs_err_t ret = read_2bytes(sfs, file, &sector);
+    SFS_RETURN_ON_ERR(ret);
+
+    file->address_pointer = sector * sfs->flash_sector_bits + FILE_INFO_SIZE;
+
+    return SFS_OK;
+}
+
+static sfs_err_t read_size_and_data(sfs_t *sfs, sfs_file_t *file,
+                                    uint8_t *buffer, uint16_t buffer_size) {
     uint16_t size;
-    ret = read_2bytes(sfs, file, &size);
-    if (ret != SFS_OK) {
-        return ret;
-    } else if (size == NO_MORE_DATA) {
+    sfs_err_t ret = read_2bytes(sfs, file, &size);
+    SFS_RETURN_ON_ERR(ret);
+
+    if (size == NO_MORE_DATA) {
         return SFS_EOF;
     }
 
@@ -434,11 +429,25 @@ sfs_err_t sfs_read_line(sfs_t *sfs, sfs_file_t *file, uint8_t *buffer, uint16_t 
     }
 
     int ret_size = sfs->read_fnc(file->address_pointer, buffer, size);
-    if (ret_size != size) {
-        return SFS_FLASH_READ;
-    }
+    SFS_RETURN_ON_ERR(ret);
 
     file->address_pointer += ret_size;
+
+    return SFS_OK;
+}
+
+sfs_err_t sfs_read_line(sfs_t *sfs, sfs_file_t *file, uint8_t *buffer, uint16_t buffer_size) {
+    sfs_err_t ret;
+    if (address_on_end_of_sector(sfs, file->address_pointer)) {
+        ret = move_ptr_to_next_sector(sfs, file);
+        SFS_RETURN_ON_ERR(ret);
+
+    } else if (address_after_end_of_sector(sfs, file->address_pointer)) {
+        return SFS_DATA_CORRUPTED;
+    }
+
+    ret = read_size_and_data(sfs, file, buffer, buffer_size);
+    SFS_RETURN_ON_ERR(ret);
 
     return SFS_OK;
 }

@@ -96,3 +96,5 @@ sfs_err_t sfs_close(sfs_t *sfs, sfs_file_t *file);
     }                           \
 
 #endif
+
+#define SFS_RETURN_ON_ERR(x) if (x != SFS_OK) return x;
