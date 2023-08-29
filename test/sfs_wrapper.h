@@ -23,4 +23,6 @@ class FlashTest: public ::testing::Test {
     bool checkFileEndAddress(sfs_file_t *file, uint32_t sector, uint32_t address);
     bool setMemory(uint32_t sector, uint32_t address, uint8_t val, uint32_t size);
     bool write2Bytes(uint32_t sector, uint32_t address, uint16_t data);
+
+    bool arrayEqual(uint8_t *arr1, uint8_t *arr2, size_t size);
 };
