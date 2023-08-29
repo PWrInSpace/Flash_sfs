@@ -355,12 +355,9 @@ sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) 
         return SFS_FILE_NOT_OPEN;
     }
 
-
-    SFS_DEBUG("END ADDRESS: %d", file->end_address);
     uint32_t sector_free_size = sfs->flash_sector_bits - (file->end_address % sfs->flash_sector_bits);
     uint16_t first_write_size = 0;
     // get first write size, save last 2 bytes for next sector'
-    SFS_DEBUG("Free size: %d, Size: %d", sector_free_size, size);
     if (sector_free_size >= (size + DATA_LEN_SIZE + END_OF_SECTOR_SIZE)) {
         first_write_size = size;
     } else if (sector_free_size == 2) {
@@ -370,7 +367,6 @@ sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) 
         first_write_size = sector_free_size - DATA_LEN_SIZE - END_OF_SECTOR_SIZE;
     }
 
-    SFS_DEBUG("FIRST WIRTE: %d", first_write_size);
     // // write size and data
     if (sector_free_size > 2) {
         sfs_err_t ret = write_size_and_data(sfs, file, data, first_write_size);
@@ -381,7 +377,6 @@ sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) 
 
     // end of sector 
     if (first_write_size != size) {
-        SFS_DEBUG("DUPA %d", 12);
         sfs_err_t ret = open_sector_and_write(sfs, file, data + first_write_size,
                                     size - first_write_size);
         if (ret != SFS_OK) {
