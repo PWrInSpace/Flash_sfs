@@ -4,6 +4,7 @@ add_executable(
   sfs_test
   # flash_mock_test.cpp
   sfs_test.cpp
+  sfs_wrapper.cpp
 )
 
 target_link_libraries(
