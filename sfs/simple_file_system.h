@@ -46,6 +46,8 @@ typedef enum {
     SFS_INVALID_VALUE,
     SFS_FILE_NOT_OPEN,
     SFS_DATA_SIZE_ZERO,
+    SFS_EOF,
+    SFS_BUFFER_SIZE
 } sfs_err_t;
 
 typedef struct {
@@ -79,7 +81,7 @@ typedef struct {
 sfs_err_t sfs_init(sfs_t *sfs, sfs_config_t *config);
 sfs_err_t sfs_open(sfs_t *sfs, sfs_file_t *file, char *file_name);
 sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size);
-// bool sfs_read_line(sfs_t *sfs, uint8_t *buffer, uint16_t buffer_size);
+sfs_err_t sfs_read_line(sfs_t *sfs, sfs_file_t *file, uint8_t *buffer, uint16_t buffer_size);
 sfs_err_t sfs_close(sfs_t *sfs, sfs_file_t *file);
 
 

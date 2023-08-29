@@ -145,3 +145,13 @@ bool FlashTest::write2Bytes(uint32_t sector, uint32_t address, uint16_t data) {
 }
 
 
+bool FlashTest::arrayEqual(uint8_t *arr1, uint8_t *arr2, size_t size) {
+    for (size_t i = 0; i < size; ++i) {
+        if (arr1[i] != arr2[i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+

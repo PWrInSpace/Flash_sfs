@@ -387,6 +387,44 @@ sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) 
     return SFS_OK;
 }
 
+static sfs_err_t read_size(sfs_t *sfs, sfs_file_t *file, uint16_t *size) {
+    uint8_t size_buffer[DATA_SIZE_LEN];
+    int ret_size = sfs->read_fnc(file->address_pointer, size_buffer, sizeof(size_buffer));
+    if (ret_size != sizeof(size_buffer)) {
+        return SFS_FLASH_READ;
+    }
+
+    file->address_pointer += ret_size;
+    *size |= size_buffer[0] << 8;
+    *size |= size_buffer[1];
+
+    return SFS_OK;
+}
+
+sfs_err_t sfs_read_line(sfs_t *sfs, sfs_file_t *file, uint8_t *buffer, uint16_t buffer_size) {
+    uint16_t size;
+    sfs_err_t ret = read_size(sfs, file, &size);
+    if (ret != SFS_OK) {
+        return ret;
+    } else if (size == NO_MORE_DATA) {
+        return SFS_EOF;
+    }
+
+    if (size > buffer_size) {
+        return SFS_BUFFER_SIZE;
+    }
+
+    int ret_size = sfs->read_fnc(file->address_pointer, buffer, size);
+    if (ret_size != size) {
+        return ret_size;
+    }
+
+    file->address_pointer += ret_size;
+
+    return SFS_OK;
+}
+
+
 sfs_err_t sfs_close(sfs_t *sfs, sfs_file_t *file) {
     (void) sfs;
     (void) memset(file, 0, sizeof(sfs_file_t));
