@@ -243,3 +243,22 @@ TEST_F(FlashTest, Read_buffer_to_smool) {
     EXPECT_EQ(SFS_BUFFER_SIZE, sfs_read_line(this->file_system, &file,
                                              ret_buffer, sizeof(ret_buffer))); 
 }
+
+TEST_F(FlashTest, Write_from_two_sectors) {
+    char file_name[] = "file";
+    sfs_file_t file;
+    EXPECT_EQ(SFS_OK, sfs_open(this->file_system, &file, file_name));
+    uint32_t sector_free_size = this->file_system->flash_sector_bits - FILE_INFO_SIZE;
+    uint32_t data_size = sector_free_size - END_OF_SECTOR_SIZE - DATA_LEN_SIZE - 20;
+    uint8_t *data = new uint8_t[data_size];
+    uint8_t *ret = new uint8_t[data_size];
+    (void) memset(data, 0x12, data_size);
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
+    EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
+
+ 
+    EXPECT_EQ(SFS_OK, sfs_read_line(this->file_system, &file, ret, data_size));
+    EXPECT_EQ(SFS_OK, sfs_read_line(this->file_system, &file, ret, data_size));
+   
+    delete[] data;
+}

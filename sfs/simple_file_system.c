@@ -322,6 +322,7 @@ static sfs_err_t write_size_and_data(sfs_t *sfs, sfs_file_t *file,
 sfs_err_t open_sector_and_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) {
     // write next free sector
     // TO DO: CAST FROM INT32 to UIN16
+    SFS_DEBUG("NEXT SECTOR %d", sfs->next_free_sector);
     sfs_err_t ret = write_2bytes(sfs, file, sfs->next_free_sector);    
     if (ret != SFS_OK) {
         return ret;
@@ -329,8 +330,11 @@ sfs_err_t open_sector_and_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uin
     
     // open new sector
     uint32_t file_start_address = file->start_address;
+    uint32_t file_address_pointer = file->address_pointer;
     ret = create_file(sfs, file, sfs->next_free_sector);
+    
     file->start_address = file_start_address;
+    file->address_pointer = file_address_pointer;
     if (ret != SFS_OK) {
         return ret;
     }
@@ -366,10 +370,11 @@ sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) 
         // Data len + data size = size + DATA_LEN_SIZE
         first_write_size = sector_free_size - DATA_LEN_SIZE - END_OF_SECTOR_SIZE;
     }
-
+    
     // // write size and data
+    sfs_err_t ret;
     if (sector_free_size > 2) {
-        sfs_err_t ret = write_size_and_data(sfs, file, data, first_write_size);
+        ret = write_size_and_data(sfs, file, data, first_write_size);
         if (ret != SFS_OK) {
             return ret;
         }
@@ -377,7 +382,7 @@ sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) 
 
     // end of sector 
     if (first_write_size != size) {
-        sfs_err_t ret = open_sector_and_write(sfs, file, data + first_write_size,
+        ret = open_sector_and_write(sfs, file, data + first_write_size,
                                     size - first_write_size);
         if (ret != SFS_OK) {
             return ret;
@@ -387,23 +392,37 @@ sfs_err_t sfs_write(sfs_t *sfs, sfs_file_t *file, uint8_t *data, uint16_t size) 
     return SFS_OK;
 }
 
-static sfs_err_t read_size(sfs_t *sfs, sfs_file_t *file, uint16_t *size) {
-    uint8_t size_buffer[DATA_SIZE_LEN];
-    int ret_size = sfs->read_fnc(file->address_pointer, size_buffer, sizeof(size_buffer));
-    if (ret_size != sizeof(size_buffer)) {
+static sfs_err_t read_2bytes(sfs_t *sfs, sfs_file_t *file, uint16_t *ret_val) {
+    uint8_t bytes[DATA_SIZE_LEN];
+    int ret_size = sfs->read_fnc(file->address_pointer, bytes, sizeof(bytes));
+    if (ret_size != sizeof(bytes)) {
         return SFS_FLASH_READ;
     }
 
     file->address_pointer += ret_size;
-    *size |= size_buffer[0] << 8;
-    *size |= size_buffer[1];
-
+    *ret_val |= bytes[0] << 8;
+    *ret_val |= bytes[1];
     return SFS_OK;
 }
 
 sfs_err_t sfs_read_line(sfs_t *sfs, sfs_file_t *file, uint8_t *buffer, uint16_t buffer_size) {
+    sfs_err_t ret;
+    SFS_DEBUG("ADD point %d", file->address_pointer);
+    if ((file->address_pointer % sfs->flash_sector_bits) == (sfs->flash_sector_bits - 2)) {
+        uint16_t sector;
+        ret = read_2bytes(sfs, file, &sector);
+        if (ret != SFS_OK) {
+            return ret;
+        }
+
+        file->address_pointer = sector * sfs->flash_sector_bits + FILE_INFO_SIZE;
+
+    } else if ((file->address_pointer % sfs->flash_sector_bits) > (sfs->flash_sector_bits - 2)) {
+        return SFS_DATA_CORRUPTED;
+    }
+
     uint16_t size;
-    sfs_err_t ret = read_size(sfs, file, &size);
+    ret = read_2bytes(sfs, file, &size);
     if (ret != SFS_OK) {
         return ret;
     } else if (size == NO_MORE_DATA) {
@@ -416,7 +435,7 @@ sfs_err_t sfs_read_line(sfs_t *sfs, sfs_file_t *file, uint8_t *buffer, uint16_t 
 
     int ret_size = sfs->read_fnc(file->address_pointer, buffer, size);
     if (ret_size != size) {
-        return ret_size;
+        return SFS_FLASH_READ;
     }
 
     file->address_pointer += ret_size;

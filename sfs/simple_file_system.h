@@ -47,7 +47,8 @@ typedef enum {
     SFS_FILE_NOT_OPEN,
     SFS_DATA_SIZE_ZERO,
     SFS_EOF,
-    SFS_BUFFER_SIZE
+    SFS_BUFFER_SIZE,
+    SFS_DATA_CORRUPTED,
 } sfs_err_t;
 
 typedef struct {
