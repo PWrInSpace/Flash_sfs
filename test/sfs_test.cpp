@@ -256,7 +256,6 @@ TEST_F(FlashTest, Write_from_two_sectors) {
     EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
     EXPECT_EQ(SFS_OK, sfs_write(this->file_system, &file, data, data_size));
 
- 
     EXPECT_EQ(SFS_OK, sfs_read_line(this->file_system, &file, ret, data_size));
     EXPECT_EQ(SFS_OK, sfs_read_line(this->file_system, &file, ret, data_size));
    
